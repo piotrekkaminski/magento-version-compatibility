@@ -1,0 +1,7 @@
+{
+  "dateStart": "2019-10-08",
+  "dateEnd": "",
+  "require": {
+    "php": "7.3.*"
+  }
+}
