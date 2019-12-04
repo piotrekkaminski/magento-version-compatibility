@@ -7,6 +7,7 @@
     "varnish": "5.0.*",
     "mariadb": "5.7.*",
     "elasticsearch": "6.*",
-    "rabbitmq": "3.5.*"
+    "rabbitmq": "3.5.*",
+    "ecetools":"2002.0.*"
   }
 }

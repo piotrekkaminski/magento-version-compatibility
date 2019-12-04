@@ -4,9 +4,9 @@ include "vendor/autoload.php";
 use Composer\Semver\Comparator;
 
 $today = date('Y-m-d');
-$components = array('php','redis','mariadb','rabbitmq','elasticsearch', 'ecetools');
-$datamap = array('php'=>13,'redis'=>16,'mariadb'=>14,'rabbitmq'=>17,'elasticsearch'=>15,'ecetools'=>11); 
-// fastly version - 12
+$components = array('php','redis','mariadb','rabbitmq','elasticsearch', 'ecetools','fastly');
+$datamap = array('php'=>13,'redis'=>16,'mariadb'=>14,'rabbitmq'=>17,'elasticsearch'=>15,'ecetools'=>11,'fastly'=>12); 
+
 if (($handle = fopen("source.csv", "r")) !== FALSE) {
     fgetcsv($handle, 10000, ","); // skip first line
     while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
