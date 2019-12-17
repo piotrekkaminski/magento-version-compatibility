@@ -1,0 +1,8 @@
+{
+  "dateStart": "2020-01-28",
+  "dateEnd": "",
+  "require": {
+    "php": "7.3.*",
+    "rabbitmq": "3.8.*",
+  }
+}
