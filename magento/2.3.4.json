@@ -3,6 +3,6 @@
   "dateEnd": "",
   "require": {
     "php": "7.3.*",
-    "rabbitmq": "3.8.*",
+    "rabbitmq": "3.8.*"
   }
 }
