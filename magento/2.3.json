@@ -1,6 +1,6 @@
 {
   "dateStart": "2018-11-28",
-  "dateEnd": "",
+  "dateEnd": "2023-01-01",
   "require": {
     "php": "7.2.*",
     "redis": "5.*.*",
