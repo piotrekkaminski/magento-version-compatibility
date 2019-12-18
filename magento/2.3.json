@@ -3,10 +3,10 @@
   "dateEnd": "",
   "require": {
     "php": "7.2.*",
-    "redis": "5.*",
+    "redis": "5.*.*",
     "varnish": "6.2.*",
     "mariadb": "5.7.*",
-    "elasticsearch": "6.*",
+    "elasticsearch": "6.*.*",
     "rabbitmq": "3.7.*",
     "ecetools":"2002.0.*"
   }
