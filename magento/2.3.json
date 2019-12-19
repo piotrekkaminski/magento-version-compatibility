@@ -8,6 +8,7 @@
     "mariadb": "5.7.*",
     "elasticsearch": "6.*.*",
     "rabbitmq": "3.7.*",
-    "ecetools":"2002.0.*"
+    "ecetools":"2002.0.*",
+    "fastly":"1.2.*"
   }
 }
