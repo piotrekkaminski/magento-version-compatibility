@@ -6,7 +6,7 @@
     "redis": "3.2.*",
     "varnish": "5.0.*",
     "mariadb": "10.2.*",
-    "elasticsearch": "6.8.*",
+    "elasticsearch": "6.5.*",
     "rabbitmq": "3.5.*",
     "ecetools":"2002.0.*",
     "fastly":"1.2.*"
