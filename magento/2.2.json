@@ -5,7 +5,7 @@
     "php": "7.1.*",
     "redis": "3.2.*",
     "varnish": "5.0.*",
-    "mariadb": "5.7.*",
+    "mariadb": "10.2.*",
     "elasticsearch": "6.*.*",
     "rabbitmq": "3.5.*",
     "ecetools":"2002.0.*",
