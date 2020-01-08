@@ -10,5 +10,7 @@
     "rabbitmq": "3.5.*",
     "ecetools":"2002.0.*",
     "fastly":"1.2.*"
-  }
+  },
+  "devdocs-upgrade":"",
+  "devdocs-update":""
 }
