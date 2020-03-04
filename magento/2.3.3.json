@@ -1,6 +1,9 @@
 {
   "dateStart": "2019-10-08",
   "require": {
-    "php": "7.3.*"
+    "php": "7.3.*",
+    "elasticsearch": "6.5.*",
+    "redis":"5.*.*",
+    "varnish":"6.2.*"
   }
 }

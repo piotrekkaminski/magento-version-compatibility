@@ -1,4 +1,8 @@
 {
   "dateStart": "2019-03-26",
-  "dateEnd": "2019-07-25"
+  "dateEnd": "2019-07-25",
+  "require": {
+    "elasticsearch": "6.5.*",
+    "redis":"5.*.*"
+  }
 }

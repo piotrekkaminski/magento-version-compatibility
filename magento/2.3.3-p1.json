@@ -2,7 +2,6 @@
   "dateStart": "2020-01-28",
   "require": {
     "php": "7.3.*",
-    "rabbitmq": "3.8.*",
     "elasticsearch": "6.5.*",
     "redis":"5.*.*",
     "varnish":"6.2.*"

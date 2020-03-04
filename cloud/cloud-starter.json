@@ -1,0 +1,9 @@
+{
+ "latest":{
+    "php":"7.3.11",
+    "redis":"5.0.0",
+    "elasticsearch":"6.5.4",
+    "rabbitmq":"3.7",
+    "mariadb":"10.2.23"
+ }
+}

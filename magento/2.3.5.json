@@ -1,9 +1,9 @@
 {
-  "dateStart": "2020-01-28",
+  "dateStart": "",
   "require": {
     "php": "7.3.*",
     "rabbitmq": "3.8.*",
-    "elasticsearch": "6.5.*",
+    "elasticsearch": "7.5.*",
     "redis":"5.*.*",
     "varnish":"6.2.*"
   }
