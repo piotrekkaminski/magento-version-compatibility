@@ -1,5 +1,7 @@
 {
     "require": {
-        "composer/semver": "^1.5"
+        "composer/semver": "^1.5",
+        "zendesk/zendesk_api_client_php": "^2.2",
+        "vlucas/phpdotenv": "^4.1"
     }
 }

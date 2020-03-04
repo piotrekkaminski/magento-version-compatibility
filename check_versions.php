@@ -1,5 +1,6 @@
 <?php
 include "vendor/autoload.php";
+include "zendesk.php";
 
 use Composer\Semver\Comparator;
 
@@ -7,10 +8,48 @@ $today = date('Y-m-d');
 $components = array('php','redis','mariadb','rabbitmq','elasticsearch', 'ecetools','fastly');
 $datamap = array('php'=>13,'redis'=>16,'mariadb'=>14,'rabbitmq'=>17,'elasticsearch'=>15,'ecetools'=>11,'fastly'=>12); 
 
+$update_docs = array(
+'magento'=>"https://devdocs.magento.com/cloud/project/project-upgrade.html",
+'php'=>"https://devdocs.magento.com/cloud/project/project-conf-files_magento-app.html#type-and-build and https://devdocs.magento.com/cloud/project/project-upgrade.html#update-the-configuration-file",
+'redis'=> "https://devdocs.magento.com/cloud/project/project-conf-files_services.html",
+'mariadb'=> "https://devdocs.magento.com/cloud/project/project-conf-files_services.html",
+'rabbitmq'=> "https://devdocs.magento.com/cloud/project/project-conf-files_services.html",
+'elasticsearch'=> "https://devdocs.magento.com/cloud/project/project-conf-files_services.html",
+'fastly'=>"https://devdocs.magento.com/cloud/cdn/configure-fastly.html#upgrade",
+'ecetools'=>"https://devdocs.magento.com/cloud/project/ece-tools-update.html"
+);
+
+$notinstalled_docs = array(
+'redis'=> "https://devdocs.magento.com/cloud/project/project-conf-files_services.html",
+'elasticsearch'=>"https://devdocs.magento.com/cloud/project/project-conf-files_services-elastic.html",
+'rabbitmq'=>" https://devdocs.magento.com/cloud/project/project-conf-files_services-rabbit.html",
+'scd'=> "https://devdocs.magento.com/cloud/deploy/static-content-deployment.html");
+
+
+
+$num_compl = 0;
+
 if (($handle = fopen("source.csv", "r")) !== FALSE) {
     fgetcsv($handle, 10000, ","); // skip first line
+    
+    
+    
+    $cloud_pro_def = json_decode(file_get_contents('cloud/cloud-pro.json'),true);
+    $cloud_starter_def = json_decode(file_get_contents('cloud/cloud-starter.json'),true);
+
     while (($data = fgetcsv($handle, 10000, ",")) !== FALSE) {
+
+	$ticket_data = "";
+	$is_compliant = true;
+	$noncompliance_pts = 0;
+	$prefix = $data[7]  . ': ';
+
+	echo $prefix . ' : ' . $data[0] . "\n"; // project ID
 	$mver = $data[10];
+	if($mver == "N/A" || $mver == "NA" || $mver == "Error") {
+	    echo $prefix . "W Missing version data\n";
+	    $is_compliant = false; $noncompliance_pts++;
+	} else {
 	$major = substr($mver,0,strrpos($mver,'.'));
 	$major_def_json = @file_get_contents('magento/' . $major . '.json');
 	$mver_def_json = @file_get_contents('magento/' . $mver . '.json');
@@ -23,21 +62,43 @@ if (($handle = fopen("source.csv", "r")) !== FALSE) {
 	} else {
 	    $def = $mver_def;
 	}
-	echo $data[0] . ':' . "\n";
 	if($def['dateEnd']!='') {
 	    // check if still ok
 	    if($def['dateEnd']<$today) {
-		echo "Version $mver is no longer supported\n";
+		echo $prefix . "X Version $mver is no longer supported\n";
+		$ticket_data .= "X: Magento version $mver is no longer supported. Please update your Magento version. More information:" . $update_docs['magento'] ."\n";
+		$is_compliant = false; $noncompliance_pts++;
 	    }	    
+	}
 	}
 	$ver = array();
 	for($i=0;$i<count($components);$i++) {
 	    $component_ver = $data[$datamap[$components[$i]]];
+	if($component_ver  == "N/A" || $component_ver  == "NA" || $component_ver  == "Error") {
+	    echo $prefix . "W Missing data for " . $components[$i] . "\n";
+	    $is_compliant = false; $noncompliance_pts++;
+	} else {
+	    
 	    $ver[$components[$i]] = $component_ver;
-	    echo $components[$i] . " Version " . $component_ver . " ";
+	        
+	    echo $prefix . $components[$i] . " Version " . $component_ver . " ";
+	    
+	    $envtype = substr($prefix,8,3);
+	    if($envtype == 'pro') {
+		$cloud_def = $cloud_pro_def;
+	    } else {
+		$cloud_def = $cloud_starter_def;
+	    }
 	    $component_def = '';
 	    $component_fail = false;
-	    if(Comparator::greaterThanOrEqualTo($component_ver,$def['require'][$components[$i]])) {
+	    
+	    $is_latest_on_cloud = false;
+	    if(isset($cloud_def['latest'][$components[$i]]) && Comparator::greaterThanOrEqualTo($component_ver,$cloud_def['latest'][$components[$i]])) {
+		$is_latest_on_cloud = true;
+	    }
+	    
+	    
+	    if(isset($def['require']) && Comparator::greaterThanOrEqualTo($component_ver,$def['require'][$components[$i]])) {
 		// minor version
 	    	$component_major = substr($component_ver,0,strrpos($component_ver,'.'));
 		$component_major_def_json = @file_get_contents('components/' . $components[$i] . '-' . $component_major . '.json');
@@ -56,22 +117,26 @@ if (($handle = fopen("source.csv", "r")) !== FALSE) {
 		    $component_def = $component_ver_def;
 		}
 	    	$component_fail = false;
-	    	if($component_def['dateEnd']!='') {
-		    // if date is defined and we are after EOL
-		    if($component_def['dateEnd']<$today) {
+	    	if(isset($component_def['dateEnd']) && $component_def['dateEnd']!='') {
+		    // if date is defined and we are after EOL and if version is earlier than latest on cloud
+		    if($component_def['dateEnd']<$today && !$is_latest_on_cloud ) {
 			$component_fail = true;
-			echo "X $component_ver is no longer actively supported by the vendor\n";
+			echo $prefix . "X $component_ver is no longer actively supported by the vendor\n";
+			$ticket_data .= "X: Component " . strtoupper($components[$i]) . " (Version " . $component_ver . ") is no longer actively supported by the vendor. Please update this component. More information: " . $update_docs[$components[$i]] . "\n";
+			$is_compliant = false; $noncompliance_pts++;
 		    }
 		}
-		if(Comparator::lessThan($component_ver, $component_def['latest'])) {
+		if(isset($component_def['latest']) && Comparator::lessThan($component_ver, $component_def['latest']) && !$is_latest_on_cloud) {
 		    // we are running not the latest version
        		    $arr_latest_ver = explode('.',$component_major_def['latest']);
 		    $latest_minus_one = manipulateVersionString($arr_latest_ver, 3, -1);
 		    
 		    if(Comparator::notEqualTo($component_ver,$latest_minus_one)) {
 			// if this is more than one version back - then X
-			echo "X $component_ver is no longer actively supported by the vendor\n";
+			echo $prefix . "X $component_ver is no longer actively supported by the vendor\n";
+			$ticket_data .= "X: Component " . strtoupper($components[$i]) . " (Version " . $component_ver . ") is no longer actively supported by the vendor. Please update this component. More information: " . $update_docs[$components[$i]] . "\n";
 			$component_fail = true;
+			$is_compliant = false; $noncompliance_pts++;
 		    } else { 
 			// we are on latest-1 version. check if the latest one was released more than 30 days ago
 			if(isset($component_latest_dev['dateStart']) && $component_latest_dev['dateStart']!='') {
@@ -81,32 +146,47 @@ if (($handle = fopen("source.csv", "r")) !== FALSE) {
 			    
 			    if(abs($interval->d)>30) {
 				// we are past due for PCI
-				echo "X $component_ver is not the latest version and new version was released more than 30 days ago\n";
+				echo $prefix . "X $component_ver is not the latest version and new version was released more than 30 days ago\n";
+			        $ticket_data .= "X: Component " . strtoupper($components[$i]) . " (Version " . $component_ver . ") is not the latest version and a new version was released more than a month ago. Please update this component. More information: " .$update_docs[$components[$i]] . "\n";
+				$is_compliant = false; $noncompliance_pts++;
 			    } else {
-				echo "W $component_ver is not the latest version but might still be supported, since less than 30 days passed from new version release\n";
+				echo $prefix . "W $component_ver is not the latest version but might still be supported, since less than 30 days passed from new version release\n";
+				$ticket_data .= "W: Component " . strtoupper($components[$i]) . " (Version " . $component_ver . ") is not the latest version but might still be supported, since less than 30 days passed from new version release. Please update this component. More information: " . $update_docs[$components[$i]] . "\n";
 			    }
 		        }  else {
-			    echo "W $component_ver is not the latest version but might still be supported\n";
+			    echo $prefix . "W $component_ver is not the latest version but might still be supported\n";
+		 	$ticket_data .= "W: Component " . strtoupper($components[$i]) . " (Version " . $component_ver . ") is not the latest version but might still be supported. Please update this component. More info: " .  $update_docs[$components[$i]] ."\n";
+			    
 			}
 			$component_fail = true;
 		    }
 		}
-	    } else {
-		echo "X $component_ver is not recommended for this version of Magento\n";
+	    } elseif($component_ver!='Not installed') {
+		echo $prefix . "X $component_ver is not recommended for this version of Magento and might no longer be supported by the vendor\n";
+		$ticket_data .= "X: Component " . strtoupper($components[$i]) . " (Version " . $component_ver . ") is not recommended for this version of Magento and might no longer be supported by the vendor. Please update this component. More information: " .$update_docs[$components[$i]] . "\n";
+		
 		$component_fail = true;
+		$is_compliant = false; $noncompliance_pts++;
+	    } elseif($component_ver=='Not installed') {
+		$ticket_data .= "W: Component " . strtoupper($components[$i]) . " is not installed. It's recommended to use it. More information: " . $notinstalled_docs[$components[$i]] . "\n";
 	    }
 	    if (!$component_fail) echo "V\n";
 	
+	    }
 	}
 	// check MCC -  MCC is deprecated, Customers must not have this
 	$mcc = $data[9];
 	if($mcc!='N/A') {
-		echo "You are using a very old version of cloud tools. Please upgrade to ECE Tools\n";
+		echo $prefix . "You are using a very old version of cloud tools. Please upgrade to ECE Tools\n";
+		$ticket_data .= "X: You are using a very old version of cloud tools. Please upgrade to ECE Tools.\n";
+		$is_compliant = false; $noncompliance_pts++;
 	}
 	// check SCD on build - We highly recommend to have this enabled
 	$scd = $data[18];
 	if($scd!='Yes') {
-		echo "You are not taking advantage of streamlined deployment process, which makes them much faster\n";		
+		echo $prefix . "You are not taking advantage of streamlined deployment process, which makes them much faster\n";		
+		$ticket_data .= "W: You are not taking advantage of the streamlined deployment process, which makes deployments much faster. More information: " .$notinstalled_docs['scd'] . "\n";
+		$is_compliant = false; $noncompliance_pts++;
 	}
 
 	// internal checks that don't need to be exposed initially
@@ -118,8 +198,21 @@ if (($handle = fopen("source.csv", "r")) !== FALSE) {
  
 
 
-	echo "\n";    
+
+	if($is_compliant) {
+	    echo $prefix . "V Site compliant\n";
+	} else {
+	    echo $prefix . "X Site NOT compliant\n";
+	}
+	echo $prefix . "Pts for non compliance: " . $noncompliance_pts . "\n";
+	echo "\n";
+	//echo $ticket_data . "\n\n";
+	if($noncompliance_pts>0) {
+	    sendTicket($data[0], $ticket_data, $mver, "");
+	    exit(0);
+	}
     }
+
     fclose($handle);
 }
 
